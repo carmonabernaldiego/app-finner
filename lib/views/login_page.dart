@@ -192,6 +192,8 @@ class _LoginPageState extends State<LoginPage> {
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.setString('token', token);
                     await prefs.setInt('user_id', userId);
+                    await prefs.setInt(
+                        'session_start', DateTime.now().millisecondsSinceEpoch);
 
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
