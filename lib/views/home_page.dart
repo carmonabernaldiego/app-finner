@@ -1,8 +1,59 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart'; // Importa el paquete intl para el formateo de la fecha
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
+
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  List<dynamic> transactions = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTransactions();
+  }
+
+  Future<void> _fetchTransactions() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('token');
+    int? userId = prefs.getInt('user_id');
+
+    if (token != null && userId != null) {
+      try {
+        final response = await http.get(
+          Uri.parse('http://23.21.23.111/transaction/user/$userId'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final responseBody = jsonDecode(response.body);
+          setState(() {
+            transactions = responseBody;
+            transactions.sort((a, b) =>
+                DateTime.parse(b['date']).compareTo(DateTime.parse(a['date'])));
+            if (transactions.length > 4) {
+              transactions = transactions.sublist(0, 4);
+            }
+          });
+        } else {
+          print('Error fetching transactions: ${response.body}');
+        }
+      } catch (e) {
+        print('Error: $e');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,58 +69,6 @@ class HomePage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // GestureDetector(
-                //   onTap: () {
-                //     Navigator.pushNamed(context, '/dashboard');
-                //   },
-                //   child: SizedBox(
-                //     width: double.infinity,
-                //     child: Card(
-                //       elevation: 4.0,
-                //       shape: RoundedRectangleBorder(
-                //         borderRadius: BorderRadius.circular(16.0),
-                //       ),
-                //       child: Padding(
-                //         padding: const EdgeInsets.all(14.0),
-                //         child: Column(
-                //           crossAxisAlignment: CrossAxisAlignment.start,
-                //           children: [
-                //             Row(
-                //               children: [
-                //                 const Text(
-                //                   'Graficas',
-                //                   style: TextStyle(
-                //                     fontSize: 24,
-                //                     fontWeight: FontWeight.bold,
-                //                   ),
-                //                 ),
-                //                 const Spacer(),
-                //                 const Icon(
-                //                   Icons.insert_chart_outlined,
-                //                   size: 32,
-                //                   color: Colors.blue,
-                //                 ),
-                //               ],
-                //             ),
-                //             const SizedBox(height: 16),
-                //             Container(
-                //               height: 135,
-                //               color: Colors.grey[300],
-                //               child: const Center(
-                //                 child: Icon(
-                //                   Icons.show_chart,
-                //                   size: 80,
-                //                   color: Colors.grey,
-                //                 ),
-                //               ),
-                //             ),
-                //           ],
-                //         ),
-                //       ),
-                //     ),
-                //   ),
-                // ),
-                //const SizedBox(height: 16),
                 GestureDetector(
                   onTap: () {
                     Navigator.pushNamed(context, '/reminders');
@@ -87,19 +86,41 @@ class HomePage extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Gastos e ingresos',
+                              'Últimos gastos e ingresos',
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             const SizedBox(height: 16),
-                            const Text(
-                              '• Write blog post for demo day\n• Publish blog page\n• Add gradients to design',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey,
-                              ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: transactions.map<Widget>((transaction) {
+                                // Obtener los datos necesarios de la transacción
+                                String type = transaction['type'].toString();
+                                String amount =
+                                    transaction['amount'].toString();
+                                DateTime parsedDate =
+                                    DateTime.parse(transaction['date']);
+                                String date =
+                                    DateFormat('dd/MM/yyyy').format(parsedDate);
+
+                                // Construir el texto a mostrar
+                                String typeText =
+                                    type == 'income' ? 'Ingreso' : 'Gasto';
+                                String displayText =
+                                    '$typeText - \$$amount - $date';
+
+                                return Text(
+                                  '• $displayText',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: type == 'income'
+                                        ? Colors.green
+                                        : Colors.red,
+                                  ),
+                                );
+                              }).toList(),
                             ),
                           ],
                         ),
@@ -154,14 +175,18 @@ class HomePage extends StatelessWidget {
               label: 'Perfil',
             ),
           ],
-          currentIndex: 0, // Update this to reflect the current page
+          currentIndex: 0, // Cambiar esto para reflejar la página actual
           onTap: (index) {
-            if (index == 0) {
-              Navigator.pushNamed(context, '/home');
-            } else if (index == 1) {
-              Navigator.pushNamed(context, '/dashboard');
-            } else if (index == 2) {
-              Navigator.pushNamed(context, '/profile');
+            switch (index) {
+              case 0:
+                Navigator.pushNamed(context, '/home');
+                break;
+              case 1:
+                Navigator.pushNamed(context, '/dashboard');
+                break;
+              case 2:
+                Navigator.pushNamed(context, '/profile');
+                break;
             }
           },
         ),
