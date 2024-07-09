@@ -1,8 +1,164 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'home_page.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  _ProfilePageState createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  Map<String, dynamic> user = {};
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _lastnameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
+
+  Future<void> _fetchUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('token');
+    int? userId = prefs.getInt('user_id');
+
+    if (token != null && userId != null) {
+      try {
+        final response = await http.get(
+          Uri.parse('http://23.21.23.111/user/$userId'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          setState(() {
+            user = jsonDecode(response.body);
+            _nameController.text = user['name'] ?? '';
+            _lastnameController.text = user['lastname'] ?? '';
+            _emailController.text = user['email'] ?? '';
+          });
+        } else {
+          print('Error fetching user data: ${response.body}');
+        }
+      } catch (e) {
+        print('Error: $e');
+      }
+    }
+  }
+
+  bool _validateEmail(String email) {
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+    return emailRegex.hasMatch(email);
+  }
+
+  Future<void> _updateUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('token');
+    int? userId = prefs.getInt('user_id');
+
+    if (token != null && userId != null) {
+      String name = _nameController.text;
+      String lastname = _lastnameController.text;
+      String email = _emailController.text;
+
+      if (name.isEmpty || lastname.isEmpty || email.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Todos los campos son obligatorios.')),
+        );
+        return;
+      }
+
+      if (!_validateEmail(email)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Correo electrónico no es válido.')),
+        );
+        return;
+      }
+
+      try {
+        final response = await http.put(
+          Uri.parse('http://23.21.23.111/user/$userId'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode({
+            'name': name,
+            'lastname': lastname,
+            'email': email,
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          setState(() {
+            user = jsonDecode(response.body);
+          });
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Perfil actualizado.')),
+          );
+        } else {
+          final responseBody = jsonDecode(response.body);
+          String errorMessage = 'Error.';
+          if (responseBody['message'] == 'Email already exists') {
+            errorMessage = 'El correo electrónico ya existe.';
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMessage)),
+          );
+          print('Error updating user data: ${response.body}');
+        }
+      } catch (e) {
+        print('Error: $e');
+      }
+    }
+  }
+
+  void _showEditProfileDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Editar perfil'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _nameController,
+                decoration: const InputDecoration(labelText: 'Nombre'),
+              ),
+              TextField(
+                controller: _lastnameController,
+                decoration: const InputDecoration(labelText: 'Apellidos'),
+              ),
+              TextField(
+                controller: _emailController,
+                decoration: const InputDecoration(labelText: 'Correo'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: _updateUser,
+              child: const Text('Guardar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +173,7 @@ class ProfilePage extends StatelessWidget {
             );
           },
         ),
-        title: const Text('Profile'),
+        title: const Text('Perfil'),
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -27,24 +183,21 @@ class ProfilePage extends StatelessWidget {
               const SizedBox(height: 16),
               const CircleAvatar(
                 radius: 50,
-                backgroundImage: AssetImage('assets/images/profile.avif'),
+                backgroundImage: AssetImage('images/user.png'),
+                backgroundColor: Colors.white,
               ),
               const SizedBox(height: 8),
               TextButton(
-                onPressed: () {
-                  // Acción para editar la imagen de perfil
-                },
+                onPressed: _showEditProfileDialog,
                 child: const Text(
-                  'Edit profile image',
+                  'Editar perfil',
                   style: TextStyle(color: Colors.blue),
                 ),
               ),
               const SizedBox(height: 16),
-              _buildProfileItem('Name', 'Diego Carmona Bernal'),
-              _buildProfileItem('Username', '@cbdiegox'),
-              _buildProfileItem('Email', 'cbdiegox@gmail.com'),
-              _buildProfileLinks(['website.net', 'mylink.net', 'yourlink.net']),
-              _buildProfileItem('Bio', 'User description.'),
+              _buildProfileItem('Nombre', user['name'] ?? ''),
+              _buildProfileItem('Apellidos', user['lastname'] ?? ''),
+              _buildProfileItem('Correo', user['email'] ?? ''),
             ],
           ),
         ),
@@ -53,15 +206,15 @@ class ProfilePage extends StatelessWidget {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
-            label: 'Start',
+            label: 'Inicio',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
+            icon: Icon(Icons.show_chart),
+            label: 'Gráficas',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
-            label: 'Profile',
+            label: 'Perfil',
           ),
         ],
         currentIndex: 2,
@@ -72,7 +225,7 @@ class ProfilePage extends StatelessWidget {
               MaterialPageRoute(builder: (context) => const HomePage()),
             );
           } else if (index == 1) {
-            // Handle settings navigation
+            Navigator.pushNamed(context, '/dashboard');
           } else if (index == 2) {
             Navigator.pushReplacementNamed(context, '/profile');
           }
@@ -87,46 +240,8 @@ class ProfilePage extends StatelessWidget {
         ListTile(
           title: Text(title),
           subtitle: Text(value),
-          trailing: const Icon(Icons.arrow_forward_ios),
           onTap: () {
             // Acción al tocar el ítem
-          },
-        ),
-        const Divider(),
-      ],
-    );
-  }
-
-  Widget _buildProfileLinks(List<String> links) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const ListTile(
-          title: Text('Links'),
-        ),
-        Column(
-          children: links.map((link) {
-            return Column(
-              children: [
-                ListTile(
-                  title: Text(link),
-                  trailing: const Icon(Icons.arrow_forward_ios),
-                  onTap: () {
-                    // Acción al tocar el link
-                  },
-                ),
-                const Divider(),
-              ],
-            );
-          }).toList(),
-        ),
-        ListTile(
-          title: const Text(
-            '+ Add link',
-            style: TextStyle(color: Colors.blue),
-          ),
-          onTap: () {
-            // Acción para añadir un link
           },
         ),
         const Divider(),
