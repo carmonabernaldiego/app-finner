@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'views/login_page.dart';
 import 'views/profile_page.dart';
 import 'views/splash_screen_page.dart';
@@ -32,7 +33,9 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginPage(),
         '/home': (context) => const HomePage(),
         '/dashboard': (context) => const DashboardPage(),
-        '/reminders': (context) => const RemindersPage(title: 'Reminders',),
+        '/reminders': (context) => const RemindersPage(
+              title: 'Reminders',
+            ),
         '/profile': (context) => const ProfilePage(),
       },
     );

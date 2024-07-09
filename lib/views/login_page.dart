@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'home_page.dart'; // Asegúrate de que la ruta sea correcta
 
 class LoginPage extends StatefulWidget {
@@ -182,14 +183,28 @@ class _LoginPageState extends State<LoginPage> {
                     }),
                   );
 
-                  if (response.statusCode == 200) {
+                  if (response.statusCode == 201) {
+                    final responseBody = jsonDecode(response.body);
+                    String token = responseBody['access_token'];
+                    int userId = responseBody[
+                        'user_id']; // Assuming user_id is returned in the response
+
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setString('token', token);
+                    await prefs.setInt('user_id', userId);
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Inicio de sesión exitoso.')),
+                    );
+
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(builder: (context) => const HomePage()),
                     );
                   } else {
                     final responseBody = jsonDecode(response.body);
-                    String errorMessage = responseBody['access_token'];
+                    String errorMessage = 'Error al iniciar sesión.';
                     if (responseBody['message'] == 'Invalid credentials') {
                       errorMessage = 'Credenciales incorrectas.';
                     }
