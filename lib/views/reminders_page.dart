@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
 import 'task_detail_page.dart'; // Importa TaskDetailPage
 
 class RemindersPage extends StatefulWidget {
@@ -29,40 +30,39 @@ class _RemindersPageState extends State<RemindersPage> {
     int? userId = prefs.getInt('user_id');
 
     if (token != null && userId != null) {
-      if (userId != null) {
-        try {
-          final response = await http.get(
-            Uri.parse('http://23.21.23.111/transaction/user/$userId'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $token',
-            },
-          );
+      try {
+        final response = await http.get(
+          Uri.parse('http://23.21.23.111/transaction/user/$userId'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        );
 
-          if (response.statusCode == 200) {
-            setState(() {
-              reminders =
-                  List<Map<String, dynamic>>.from(jsonDecode(response.body));
-              isLoading = false;
-            });
-          } else {
-            print('Error fetching reminders: ${response.body}');
-            setState(() {
-              isLoading = false;
-            });
-          }
-        } catch (e) {
-          print('Error: $e');
+        if (response.statusCode == 200) {
+          setState(() {
+            reminders =
+                List<Map<String, dynamic>>.from(jsonDecode(response.body));
+            isLoading = false;
+          });
+        } else {
+          print('Error fetching reminders: ${response.body}');
           setState(() {
             isLoading = false;
           });
         }
-      } else {
+      } catch (e) {
+        print('Error: $e');
         setState(() {
           isLoading = false;
         });
       }
     }
+  }
+
+  String _formatDate(String date) {
+    DateTime parsedDate = DateTime.parse(date);
+    return DateFormat.yMMMd().format(parsedDate);
   }
 
   Widget _buildReminderItem(Map<String, dynamic> reminder) {
@@ -89,8 +89,8 @@ class _RemindersPageState extends State<RemindersPage> {
         color: statusColor,
       ),
       title: Text(reminder['description']),
-      subtitle:
-          Text('Monto: \$${reminder['amount']}, Fecha: ${reminder['date']}'),
+      subtitle: Text(
+          'Monto: \$${reminder['amount']}, Fecha: ${_formatDate(reminder['date'])}'),
       trailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
@@ -109,7 +109,7 @@ class _RemindersPageState extends State<RemindersPage> {
             builder: (context) => TaskDetailPage(
               id: reminder['id'],
               type: reminder['type'],
-              amount: reminder['amount'],
+              amount: double.parse(reminder['amount']),
               date: reminder['date'],
               description: reminder['description'],
               status: reminder['status'],

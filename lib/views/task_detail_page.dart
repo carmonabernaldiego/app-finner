@@ -1,65 +1,145 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class TaskDetailPage extends StatelessWidget {
-  final String task;
-  final String title;
-  final String priority;
+  final int id;
+  final String type;
+  final double amount;
+  final String date;
+  final String description;
+  final String status;
 
   const TaskDetailPage({
     super.key,
-    required this.task,
-    required this.title,
-    required this.priority,
+    required this.id,
+    required this.type,
+    required this.amount,
+    required this.date,
+    required this.description,
+    required this.status,
   });
+
+  String _formatDate(String date) {
+    DateTime parsedDate = DateTime.parse(date);
+    return DateFormat.yMMMd().format(parsedDate);
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'High':
+        return Colors.red;
+      case 'Medium':
+        return Colors.orange;
+      case 'Low':
+        return Colors.green;
+      default:
+        return Colors.grey; // Color por defecto si el estado no es reconocido
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    Color priorityColor;
-    switch (priority) {
-      case 'High':
-        priorityColor = Colors.red;
+    Color statusColor;
+    IconData iconData;
+    String transactionType;
+    switch (type) {
+      case 'income':
+        statusColor = Colors.green;
+        iconData = Icons.arrow_downward;
+        transactionType = 'Ingreso';
         break;
-      case 'Medium':
-        priorityColor = Colors.orange;
-        break;
-      case 'Low':
+      case 'expense':
       default:
-        priorityColor = Colors.green;
+        statusColor = Colors.red;
+        iconData = Icons.arrow_upward;
+        transactionType = 'Gasto';
         break;
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Task details: $task'),
+        title: Text('Detalles de la tarea: $id'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Title:',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        child: Card(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15.0),
+          ),
+          elevation: 5,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildDetailRow('ID:', id.toString()),
+                const Divider(),
+                _buildDetailRow(
+                    'Tipo:', transactionType, iconData, statusColor),
+                const Divider(),
+                _buildDetailRow('Monto:', '\$${amount.toStringAsFixed(2)}'),
+                const Divider(),
+                _buildDetailRow('Fecha:', _formatDate(date)),
+                const Divider(),
+                _buildDetailRow('Descripción:', description),
+                const Divider(),
+                _buildDetailRow(
+                    'Estado:', status, null, _getStatusColor(status)),
+              ],
             ),
-            Text(title, style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 16),
-            const Text(
-              'Priority:',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String title, String value,
+      [IconData? iconData, Color? color]) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$title ',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          if (iconData != null && color != null) ...[
+            Icon(iconData, color: color),
+            const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: priorityColor,
-                borderRadius: BorderRadius.circular(4),
+                color: color,
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                priority,
+                value,
                 style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
             ),
-          ],
-        ),
+          ] else if (color != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                value,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14), // Tamaño de texto más pequeño para estado
+              ),
+            ),
+          ] else
+            Expanded(
+              child: Text(
+                value,
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+        ],
       ),
     );
   }
