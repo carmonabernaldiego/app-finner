@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'task_detail_page.dart'; // Importa TaskDetailPage
 
 class RemindersPage extends StatefulWidget {
@@ -11,46 +14,91 @@ class RemindersPage extends StatefulWidget {
 }
 
 class _RemindersPageState extends State<RemindersPage> {
-  final List<Map<String, String>> reminders = [
-    {'task': 'FIG-121', 'title': 'Write blog post for demo day', 'priority': 'High'},
-    {'task': 'FIG-122', 'title': 'Publish blog page', 'priority': 'Low'},
-    {'task': 'FIG-123', 'title': 'Add gradients to design sys...', 'priority': 'Medium'},
-    {'task': 'FIG-124', 'title': 'Responsive behavior doesn\'t...', 'priority': 'Medium'},
-    {'task': 'FIG-125', 'title': 'Confirmation states not ren...', 'priority': 'Medium'},
-    {'task': 'FIG-126', 'title': 'Revise copy on the About p...', 'priority': 'Low'},
-    {'task': 'FIG-127', 'title': 'Text wrapping is awkward o...', 'priority': 'Low'},
-    {'task': 'FIG-128', 'title': 'Publish HackerNews post', 'priority': 'Low'},
-    {'task': 'FIG-129', 'title': 'Review image licensing for...', 'priority': 'High'},
-    {'task': 'FIG-130', 'title': 'Accessibility focused state f...', 'priority': 'High'},
-    {'task': 'FIG-131', 'title': 'Header IA revision to suppo...', 'priority': 'Low'},
-  ];
+  List<Map<String, dynamic>> reminders = [];
+  bool isLoading = true;
 
-  Widget _buildReminderItem(Map<String, String> reminder) {
-    Color priorityColor;
-    switch (reminder['priority']) {
-      case 'High':
-        priorityColor = Colors.red;
+  @override
+  void initState() {
+    super.initState();
+    _fetchReminders();
+  }
+
+  Future<void> _fetchReminders() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('token');
+    int? userId = prefs.getInt('user_id');
+
+    if (token != null && userId != null) {
+      if (userId != null) {
+        try {
+          final response = await http.get(
+            Uri.parse('http://23.21.23.111/transaction/user/$userId'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+          );
+
+          if (response.statusCode == 200) {
+            setState(() {
+              reminders =
+                  List<Map<String, dynamic>>.from(jsonDecode(response.body));
+              isLoading = false;
+            });
+          } else {
+            print('Error fetching reminders: ${response.body}');
+            setState(() {
+              isLoading = false;
+            });
+          }
+        } catch (e) {
+          print('Error: $e');
+          setState(() {
+            isLoading = false;
+          });
+        }
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  Widget _buildReminderItem(Map<String, dynamic> reminder) {
+    Color statusColor;
+    IconData iconData;
+    String transactionType;
+    switch (reminder['type']) {
+      case 'income':
+        statusColor = Colors.green;
+        iconData = Icons.arrow_downward;
+        transactionType = 'Ingreso';
         break;
-      case 'Medium':
-        priorityColor = Colors.orange;
-        break;
-      case 'Low':
+      case 'expense':
       default:
-        priorityColor = Colors.green;
+        statusColor = Colors.red;
+        iconData = Icons.arrow_upward;
+        transactionType = 'Gasto';
         break;
     }
 
     return ListTile(
-      leading: Text(reminder['task']!),
-      title: Text(reminder['title']!),
+      leading: Icon(
+        iconData,
+        color: statusColor,
+      ),
+      title: Text(reminder['description']),
+      subtitle:
+          Text('Monto: \$${reminder['amount']}, Fecha: ${reminder['date']}'),
       trailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: priorityColor,
-          borderRadius: BorderRadius.circular(4),
+          color: statusColor,
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
-          reminder['priority']!,
+          transactionType,
           style: const TextStyle(color: Colors.white),
         ),
       ),
@@ -59,9 +107,12 @@ class _RemindersPageState extends State<RemindersPage> {
           context,
           MaterialPageRoute(
             builder: (context) => TaskDetailPage(
-              task: reminder['task']!,
-              title: reminder['title']!,
-              priority: reminder['priority']!,
+              id: reminder['id'],
+              type: reminder['type'],
+              amount: reminder['amount'],
+              date: reminder['date'],
+              description: reminder['description'],
+              status: reminder['status'],
             ),
           ),
         );
@@ -73,7 +124,7 @@ class _RemindersPageState extends State<RemindersPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Reminders'),
+        title: const Text('Gastos e Ingresos'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -91,7 +142,7 @@ class _RemindersPageState extends State<RemindersPage> {
                   child: TextField(
                     decoration: InputDecoration(
                       prefixIcon: const Icon(Icons.search),
-                      hintText: 'Search',
+                      hintText: 'Buscar',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -112,12 +163,14 @@ class _RemindersPageState extends State<RemindersPage> {
             ),
           ),
           Expanded(
-            child: ListView.builder(
-              itemCount: reminders.length,
-              itemBuilder: (context, index) {
-                return _buildReminderItem(reminders[index]);
-              },
-            ),
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : ListView.builder(
+                    itemCount: reminders.length,
+                    itemBuilder: (context, index) {
+                      return _buildReminderItem(reminders[index]);
+                    },
+                  ),
           ),
         ],
       ),
