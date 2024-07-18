@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home_page.dart';
+import 'login_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -160,6 +161,14 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('token');
+    await prefs.remove('user_id');
+    await prefs.remove('session_start');
+    Navigator.pushReplacementNamed(context, '/login');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -198,6 +207,11 @@ class _ProfilePageState extends State<ProfilePage> {
               _buildProfileItem('Nombre', user['name'] ?? ''),
               _buildProfileItem('Apellidos', user['lastname'] ?? ''),
               _buildProfileItem('Correo', user['email'] ?? ''),
+              const SizedBox(height: 32),
+              ElevatedButton(
+                onPressed: _logout,
+                child: const Text('Cerrar sesión'),
+              ),
             ],
           ),
         ),

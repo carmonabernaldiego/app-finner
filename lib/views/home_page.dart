@@ -3,7 +3,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:intl/intl.dart'; // Importa el paquete intl para el formateo de la fecha
+import 'package:intl/intl.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -81,14 +81,14 @@ class _HomePageState extends State<HomePage> {
                         borderRadius: BorderRadius.circular(16.0),
                       ),
                       child: Padding(
-                        padding: const EdgeInsets.all(14.0),
+                        padding: const EdgeInsets.all(16.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
                               'Últimos gastos e ingresos',
                               style: TextStyle(
-                                fontSize: 24,
+                                fontSize: 20,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -96,7 +96,6 @@ class _HomePageState extends State<HomePage> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: transactions.map<Widget>((transaction) {
-                                // Obtener los datos necesarios de la transacción
                                 String type = transaction['type'].toString();
                                 String amount =
                                     transaction['amount'].toString();
@@ -105,20 +104,43 @@ class _HomePageState extends State<HomePage> {
                                 String date =
                                     DateFormat('dd/MM/yyyy').format(parsedDate);
 
-                                // Construir el texto a mostrar
                                 String typeText =
                                     type == 'income' ? 'Ingreso' : 'Gasto';
-                                String displayText =
-                                    '$typeText - \$$amount - $date';
+                                Color textColor = type == 'income'
+                                    ? Colors.green
+                                    : Colors.red;
 
-                                return Text(
-                                  '• $displayText',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: type == 'income'
-                                        ? Colors.green
-                                        : Colors.red,
-                                  ),
+                                return Column(
+                                  children: [
+                                    ListTile(
+                                      contentPadding: EdgeInsets.zero,
+                                      leading: Icon(
+                                        type == 'income'
+                                            ? Icons.arrow_downward
+                                            : Icons.arrow_upward,
+                                        color: textColor,
+                                      ),
+                                      title: Text(
+                                        '$typeText - \$$amount',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: textColor,
+                                        ),
+                                      ),
+                                      subtitle: Text(
+                                        date,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ),
+                                    Divider(
+                                      color: Colors.grey[300],
+                                      thickness: 1,
+                                    ),
+                                  ],
                                 );
                               }).toList(),
                             ),
@@ -142,7 +164,7 @@ class _HomePageState extends State<HomePage> {
                         const Text(
                           'Crear un gasto o ingreso',
                           style: TextStyle(
-                            fontSize: 24,
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
