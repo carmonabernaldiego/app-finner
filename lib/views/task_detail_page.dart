@@ -34,6 +34,8 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
   late String _description;
   late String _status;
 
+  late TextEditingController _dateController;
+
   @override
   void initState() {
     super.initState();
@@ -42,6 +44,14 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
     _date = widget.date;
     _description = widget.description;
     _status = widget.status;
+
+    _dateController = TextEditingController(text: _formatDate(_date));
+  }
+
+  @override
+  void dispose() {
+    _dateController.dispose();
+    super.dispose();
   }
 
   String _formatDate(String date) {
@@ -91,6 +101,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
             _date = updatedReminder['date'];
             _description = updatedReminder['description'];
             _status = updatedReminder['status'];
+            _dateController.text = _formatDate(_date);
           });
 
           Navigator.of(context)
@@ -160,8 +171,9 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                   },
                 ),
                 TextFormField(
-                  initialValue: _formatDate(updatedReminder['date']),
+                  controller: _dateController,
                   decoration: InputDecoration(labelText: 'Fecha (dd/MM/yyyy)'),
+                  readOnly: true,
                   onTap: () async {
                     DateTime? pickedDate = await showDatePicker(
                       context: context,
@@ -173,6 +185,8 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                       setState(() {
                         updatedReminder['date'] =
                             DateFormat('yyyy-MM-dd').format(pickedDate);
+                        _dateController.text =
+                            DateFormat('dd/MM/yyyy').format(pickedDate);
                       });
                     }
                   },
