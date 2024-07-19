@@ -42,8 +42,8 @@ class _HomePageState extends State<HomePage> {
             transactions = responseBody;
             transactions.sort((a, b) =>
                 DateTime.parse(b['date']).compareTo(DateTime.parse(a['date'])));
-            if (transactions.length > 4) {
-              transactions = transactions.sublist(0, 4);
+            if (transactions.length > 5) {
+              transactions = transactions.sublist(0, 5);
             }
           });
         } else {
@@ -150,7 +150,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                /*const SizedBox(height: 16),
                 Card(
                   elevation: 4.0,
                   shape: RoundedRectangleBorder(
@@ -177,7 +177,7 @@ class _HomePageState extends State<HomePage> {
                       ],
                     ),
                   ),
-                ),
+                ),*/
               ],
             ),
           ),
