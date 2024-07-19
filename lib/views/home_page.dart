@@ -70,8 +70,12 @@ class _HomePageState extends State<HomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 GestureDetector(
-                  onTap: () {
-                    Navigator.pushNamed(context, '/reminders');
+                  onTap: () async {
+                    final result =
+                        await Navigator.pushNamed(context, '/reminders');
+                    if (result == true) {
+                      _fetchTransactions(); // Actualiza la lista de transacciones al regresar
+                    }
                   },
                   child: SizedBox(
                     width: double.infinity,
@@ -150,7 +154,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-                /*const SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Card(
                   elevation: 4.0,
                   shape: RoundedRectangleBorder(
@@ -177,7 +181,7 @@ class _HomePageState extends State<HomePage> {
                       ],
                     ),
                   ),
-                ),*/
+                ),
               ],
             ),
           ),
