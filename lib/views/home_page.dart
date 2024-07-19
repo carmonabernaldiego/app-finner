@@ -62,6 +62,7 @@ class _HomePageState extends State<HomePage> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('FINNER'),
+          automaticallyImplyLeading: false,
         ),
         body: SingleChildScrollView(
           child: Padding(
