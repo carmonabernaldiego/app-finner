@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Importa para usar TextInputFormatter
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
-import 'task_detail_page.dart'; // Importa TaskDetailPage
+import 'task_detail_page.dart';
 
 class RemindersPage extends StatefulWidget {
   const RemindersPage({super.key, required this.title});
@@ -181,8 +181,8 @@ class _RemindersPageState extends State<RemindersPage> {
           ),
         ],
       ),
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        final result = await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => TaskDetailPage(
@@ -195,6 +195,9 @@ class _RemindersPageState extends State<RemindersPage> {
             ),
           ),
         );
+        if (result == true) {
+          _fetchReminders();
+        }
       },
     );
   }
@@ -318,7 +321,6 @@ class _RemindersPageState extends State<RemindersPage> {
                   } else if (newReminder['status'] == 'Baja') {
                     newReminder['status'] = 'Low';
                   }
-
                   _createReminder(newReminder);
                   Navigator.of(context).pop();
                 }
@@ -332,65 +334,71 @@ class _RemindersPageState extends State<RemindersPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Gastos e Ingresos'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pushNamed(context, '/home');
-          },
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.pop(context, true);
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Gastos e Ingresos'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              Navigator.pop(context, true);
+            },
+          ),
         ),
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: searchController,
-                    decoration: InputDecoration(
-                      prefixIcon: const Icon(Icons.search),
-                      hintText: 'Buscar',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: searchController,
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.search),
+                        hintText: 'Buscar',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[200],
                       ),
-                      filled: true,
-                      fillColor: Colors.grey[200],
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () {
-                    _showCreateDialog();
-                  },
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: () {
+                      _showCreateDialog();
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
-          Expanded(
-            child: isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : reminders.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'Sin resultados',
-                          style: TextStyle(fontSize: 18, color: Colors.grey),
+            Expanded(
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : reminders.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'Sin resultados',
+                            style: TextStyle(fontSize: 18, color: Colors.grey),
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: reminders.length,
+                          itemBuilder: (context, index) {
+                            return _buildReminderItem(reminders[index]);
+                          },
                         ),
-                      )
-                    : ListView.builder(
-                        itemCount: reminders.length,
-                        itemBuilder: (context, index) {
-                          return _buildReminderItem(reminders[index]);
-                        },
-                      ),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
