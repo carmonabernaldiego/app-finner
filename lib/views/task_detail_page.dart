@@ -20,8 +20,7 @@ class TaskDetailPage extends StatelessWidget {
   });
 
   String _formatDate(String date) {
-    DateTime parsedDate = DateTime.parse(date);
-    return DateFormat.yMMMd().format(parsedDate);
+    return DateFormat('dd/MM/yyyy').format(DateTime.parse(date));
   }
 
   Color _getStatusColor(String status) {
@@ -58,7 +57,7 @@ class TaskDetailPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Detalles de la tarea: $id'),
+        title: Text('Detalles del $transactionType'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -84,7 +83,7 @@ class TaskDetailPage extends StatelessWidget {
                 _buildDetailRow('Descripción:', description),
                 const Divider(),
                 _buildDetailRow(
-                    'Estado:', status, null, _getStatusColor(status)),
+                    'Prioridad:', status, null, _getStatusColor(status)),
               ],
             ),
           ),
@@ -126,7 +125,11 @@ class TaskDetailPage extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                value,
+                value.contains('High')
+                    ? 'Alta'
+                    : value.contains('Medium')
+                        ? 'Media'
+                        : 'Baja',
                 style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14), // Tamaño de texto más pequeño para estado

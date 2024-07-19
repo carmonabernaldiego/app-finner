@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Importa para usar TextInputFormatter
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,14 +18,27 @@ class RemindersPage extends StatefulWidget {
 class _RemindersPageState extends State<RemindersPage> {
   List<Map<String, dynamic>> reminders = [];
   bool isLoading = true;
+  TextEditingController searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _fetchReminders();
+    searchController.addListener(_onSearchChanged);
   }
 
-  Future<void> _fetchReminders() async {
+  @override
+  void dispose() {
+    searchController.removeListener(_onSearchChanged);
+    searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    _fetchReminders(searchController.text);
+  }
+
+  Future<void> _fetchReminders([String query = '']) async {
     final prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('token');
     int? userId = prefs.getInt('user_id');
@@ -32,7 +46,7 @@ class _RemindersPageState extends State<RemindersPage> {
     if (token != null && userId != null) {
       try {
         final response = await http.get(
-          Uri.parse('http://23.21.23.111/transaction/user/$userId'),
+          Uri.parse('http://23.21.23.111/transaction/$userId/search/$query'),
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer $token',
@@ -60,9 +74,60 @@ class _RemindersPageState extends State<RemindersPage> {
     }
   }
 
-  String _formatDate(String date) {
-    DateTime parsedDate = DateTime.parse(date);
-    return DateFormat.yMMMd().format(parsedDate);
+  Future<void> _deleteReminder(int id) async {
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('token');
+
+    if (token != null) {
+      try {
+        final response = await http.delete(
+          Uri.parse('http://23.21.23.111/transaction/$id'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          setState(() {
+            reminders.removeWhere((reminder) => reminder['id'] == id);
+          });
+        } else {
+          print('Error deleting reminder: ${response.body}');
+        }
+      } catch (e) {
+        print('Error: $e');
+      }
+    }
+  }
+
+  Future<void> _createReminder(Map<String, dynamic> reminderData) async {
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('token');
+
+    if (token != null) {
+      try {
+        final response = await http.post(
+          Uri.parse('http://23.21.23.111/transaction/'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode(reminderData),
+        );
+
+        if (response.statusCode == 201) {
+          setState(() {
+            reminders.add(jsonDecode(response.body));
+            _fetchReminders();
+          });
+        } else {
+          print('Error creating reminder: ${response.body}');
+        }
+      } catch (e) {
+        print('Error: $e');
+      }
+    }
   }
 
   Widget _buildReminderItem(Map<String, dynamic> reminder) {
@@ -90,17 +155,31 @@ class _RemindersPageState extends State<RemindersPage> {
       ),
       title: Text(reminder['description']),
       subtitle: Text(
-          'Monto: \$${reminder['amount']}, Fecha: ${_formatDate(reminder['date'])}'),
-      trailing: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: statusColor,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(
-          transactionType,
-          style: const TextStyle(color: Colors.white),
-        ),
+          'Monto: \$${reminder['amount']}, Fecha: ${DateFormat('dd/MM/yyyy').format(DateTime.parse(reminder['date']))}'),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: statusColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              transactionType,
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.delete, color: Colors.grey),
+            onPressed: () async {
+              bool confirm = await _showConfirmationDialog(reminder['id']);
+              if (confirm) {
+                _deleteReminder(reminder['id']);
+              }
+            },
+          ),
+        ],
       ),
       onTap: () {
         Navigator.push(
@@ -115,6 +194,137 @@ class _RemindersPageState extends State<RemindersPage> {
               status: reminder['status'],
             ),
           ),
+        );
+      },
+    );
+  }
+
+  Future<bool> _showConfirmationDialog(int id) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: Text('Confirmar eliminación'),
+              content:
+                  Text('¿Estás seguro de que deseas eliminar este registro?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: Text('Cancelar'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: Text('Eliminar'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+  }
+
+  Future<void> _showCreateDialog() async {
+    final prefs = await SharedPreferences.getInstance();
+    int? userId = prefs.getInt('user_id');
+
+    final _formKey = GlobalKey<FormState>();
+
+    Map<String, dynamic> newReminder = {
+      "type": "expense",
+      "user_id": userId,
+      "amount": 0.0,
+      "date": DateTime.now().toIso8601String(),
+      "description": "",
+      "status": "Alta" // Valor inicial predeterminado para el estatus
+    };
+
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Crear nuevo registro'),
+          content: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                DropdownButtonFormField<String>(
+                  value: newReminder['type'],
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      newReminder['type'] = newValue!;
+                    });
+                  },
+                  items: <String>['income', 'expense']
+                      .map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value == 'income' ? 'Ingreso' : 'Gasto'),
+                    );
+                  }).toList(),
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Monto'),
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
+                  ],
+                  onSaved: (String? value) {
+                    newReminder['amount'] =
+                        double.tryParse(value ?? '0.0') ?? 0.0;
+                  },
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Descripción'),
+                  onSaved: (String? value) {
+                    newReminder['description'] = value!;
+                  },
+                ),
+                DropdownButtonFormField<String>(
+                  value: newReminder['status'],
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      newReminder['status'] = newValue!;
+                    });
+                  },
+                  items: <String>['Alta', 'Media', 'Baja']
+                      .map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  decoration: InputDecoration(labelText: 'Prioridad'),
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Guardar'),
+              onPressed: () {
+                if (_formKey.currentState!.validate()) {
+                  _formKey.currentState!.save();
+                  if (newReminder['status'] == 'Alta') {
+                    newReminder['status'] = 'High';
+                  } else if (newReminder['status'] == 'Media') {
+                    newReminder['status'] = 'Medium';
+                  } else if (newReminder['status'] == 'Baja') {
+                    newReminder['status'] = 'Low';
+                  }
+
+                  _createReminder(newReminder);
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ],
         );
       },
     );
@@ -140,6 +350,7 @@ class _RemindersPageState extends State<RemindersPage> {
               children: [
                 Expanded(
                   child: TextField(
+                    controller: searchController,
                     decoration: InputDecoration(
                       prefixIcon: const Icon(Icons.search),
                       hintText: 'Buscar',
@@ -154,9 +365,9 @@ class _RemindersPageState extends State<RemindersPage> {
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  icon: const Icon(Icons.filter_alt),
+                  icon: const Icon(Icons.add),
                   onPressed: () {
-                    // Acción del botón de filtro (actualmente no hace nada)
+                    _showCreateDialog();
                   },
                 ),
               ],
@@ -165,12 +376,19 @@ class _RemindersPageState extends State<RemindersPage> {
           Expanded(
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : ListView.builder(
-                    itemCount: reminders.length,
-                    itemBuilder: (context, index) {
-                      return _buildReminderItem(reminders[index]);
-                    },
-                  ),
+                : reminders.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'Sin resultados',
+                          style: TextStyle(fontSize: 18, color: Colors.grey),
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: reminders.length,
+                        itemBuilder: (context, index) {
+                          return _buildReminderItem(reminders[index]);
+                        },
+                      ),
           ),
         ],
       ),
