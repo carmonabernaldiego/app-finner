@@ -238,7 +238,7 @@ class _RemindersPageState extends State<RemindersPage> {
       "amount": 0.0,
       "date": DateTime.now().toIso8601String(),
       "description": "",
-      "status": "Alta" // Valor inicial predeterminado para el estatus
+      "status": "High" // Valor inicial predeterminado para el estatus
     };
 
     return showDialog<void>(
@@ -265,9 +265,16 @@ class _RemindersPageState extends State<RemindersPage> {
                       child: Text(value == 'income' ? 'Ingreso' : 'Gasto'),
                     );
                   }).toList(),
+                  decoration: const InputDecoration(labelText: 'Tipo'),
+                  validator: (value) {
+                    if (value == null) {
+                      return 'Por favor selecciona un tipo';
+                    }
+                    return null;
+                  },
                 ),
                 TextFormField(
-                  decoration: InputDecoration(labelText: 'Monto'),
+                  decoration: const InputDecoration(labelText: 'Monto'),
                   keyboardType: TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
@@ -276,11 +283,26 @@ class _RemindersPageState extends State<RemindersPage> {
                     newReminder['amount'] =
                         double.tryParse(value ?? '0.0') ?? 0.0;
                   },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor ingresa un monto';
+                    }
+                    if (double.tryParse(value) == null) {
+                      return 'Ingresa un monto válido';
+                    }
+                    return null;
+                  },
                 ),
                 TextFormField(
-                  decoration: InputDecoration(labelText: 'Descripción'),
+                  decoration: const InputDecoration(labelText: 'Descripción'),
                   onSaved: (String? value) {
                     newReminder['description'] = value!;
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor ingresa una descripción';
+                    }
+                    return null;
                   },
                 ),
                 DropdownButtonFormField<String>(
@@ -290,14 +312,24 @@ class _RemindersPageState extends State<RemindersPage> {
                       newReminder['status'] = newValue!;
                     });
                   },
-                  items: <String>['Alta', 'Media', 'Baja']
+                  items: <String>['High', 'Medium', 'Low']
                       .map<DropdownMenuItem<String>>((String value) {
                     return DropdownMenuItem<String>(
                       value: value,
-                      child: Text(value),
+                      child: Text(value == 'High'
+                          ? 'Alta'
+                          : value == 'Medium'
+                              ? 'Media'
+                              : 'Baja'),
                     );
                   }).toList(),
-                  decoration: InputDecoration(labelText: 'Prioridad'),
+                  decoration: const InputDecoration(labelText: 'Prioridad'),
+                  validator: (value) {
+                    if (value == null) {
+                      return 'Por favor selecciona una prioridad';
+                    }
+                    return null;
+                  },
                 ),
               ],
             ),
@@ -314,14 +346,6 @@ class _RemindersPageState extends State<RemindersPage> {
               onPressed: () {
                 if (_formKey.currentState!.validate()) {
                   _formKey.currentState!.save();
-                  if (newReminder['status'] == 'Alta') {
-                    newReminder['status'] = 'High';
-                  } else if (newReminder['status'] == 'Media') {
-                    newReminder['status'] = 'Medium';
-                  } else if (newReminder['status'] == 'Baja') {
-                    newReminder['status'] = 'Low';
-                  }
-
                   _createReminder(newReminder);
                   Navigator.of(context).pop();
                 }

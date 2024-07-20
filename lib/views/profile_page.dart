@@ -134,15 +134,26 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               TextField(
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Nombre'),
+                decoration: const InputDecoration(
+                  labelText: 'Nombre',
+                  border: OutlineInputBorder(),
+                ),
               ),
+              const SizedBox(height: 16),
               TextField(
                 controller: _lastnameController,
-                decoration: const InputDecoration(labelText: 'Apellidos'),
+                decoration: const InputDecoration(
+                  labelText: 'Apellidos',
+                  border: OutlineInputBorder(),
+                ),
               ),
+              const SizedBox(height: 16),
               TextField(
                 controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Correo'),
+                decoration: const InputDecoration(
+                  labelText: 'Correo',
+                  border: OutlineInputBorder(),
+                ),
               ),
             ],
           ),
@@ -254,9 +265,6 @@ class _ProfilePageState extends State<ProfilePage> {
         ListTile(
           title: Text(title),
           subtitle: Text(value),
-          onTap: () {
-            // Acción al tocar el ítem
-          },
         ),
         const Divider(),
       ],

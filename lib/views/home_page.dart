@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:table_calendar/table_calendar.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:intl/intl.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -319,6 +319,16 @@ class _CreateTransactionFormState extends State<CreateTransactionForm> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
+          TextFormField(
+            decoration: InputDecoration(
+              labelText: 'Fecha',
+              enabled: false, // Deshabilitar edición
+              border: const OutlineInputBorder(),
+              suffixIcon: Icon(Icons.calendar_today),
+            ),
+            initialValue: DateFormat('dd/MM/yyyy').format(widget.selectedDate),
+          ),
+          const SizedBox(height: 16),
           DropdownButtonFormField<String>(
             value: _type,
             onChanged: (String? newValue) {
@@ -334,19 +344,42 @@ class _CreateTransactionFormState extends State<CreateTransactionForm> {
               );
             }).toList(),
             decoration: const InputDecoration(labelText: 'Tipo'),
+            validator: (value) {
+              if (value == null) {
+                return 'Por favor selecciona un tipo';
+              }
+              return null;
+            },
           ),
           TextFormField(
             decoration: const InputDecoration(labelText: 'Monto'),
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            keyboardType: TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+            ],
             onSaved: (value) {
-              _amount = double.parse(value!);
+              _amount = double.tryParse(value!) ?? 0.0;
+            },
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Por favor ingresa un monto';
+              }
+              if (double.tryParse(value) == null) {
+                return 'Ingresa un monto válido';
+              }
+              return null;
             },
           ),
           TextFormField(
             decoration: const InputDecoration(labelText: 'Descripción'),
             onSaved: (value) {
-              _description = value!;
+              _description = value ?? '';
+            },
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Por favor ingresa una descripción';
+              }
+              return null;
             },
           ),
           DropdownButtonFormField<String>(
@@ -368,6 +401,12 @@ class _CreateTransactionFormState extends State<CreateTransactionForm> {
               );
             }).toList(),
             decoration: const InputDecoration(labelText: 'Prioridad'),
+            validator: (value) {
+              if (value == null) {
+                return 'Por favor selecciona una prioridad';
+              }
+              return null;
+            },
           ),
           const SizedBox(height: 16),
           ElevatedButton(

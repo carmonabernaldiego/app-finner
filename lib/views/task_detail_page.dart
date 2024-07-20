@@ -150,10 +150,17 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                       child: Text(value == 'income' ? 'Ingreso' : 'Gasto'),
                     );
                   }).toList(),
+                  decoration: const InputDecoration(labelText: 'Tipo'),
+                  validator: (value) {
+                    if (value == null) {
+                      return 'Por favor selecciona un tipo';
+                    }
+                    return null;
+                  },
                 ),
                 TextFormField(
                   initialValue: updatedReminder['amount'].toString(),
-                  decoration: InputDecoration(labelText: 'Monto'),
+                  decoration: const InputDecoration(labelText: 'Monto'),
                   keyboardType: TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
@@ -162,17 +169,33 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                     updatedReminder['amount'] =
                         double.tryParse(value ?? '0.0') ?? 0.0;
                   },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor ingresa un monto';
+                    }
+                    if (double.tryParse(value) == null) {
+                      return 'Ingresa un monto válido';
+                    }
+                    return null;
+                  },
                 ),
                 TextFormField(
                   initialValue: updatedReminder['description'],
-                  decoration: InputDecoration(labelText: 'Descripción'),
+                  decoration: const InputDecoration(labelText: 'Descripción'),
                   onSaved: (String? value) {
                     updatedReminder['description'] = value!;
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor ingresa una descripción';
+                    }
+                    return null;
                   },
                 ),
                 TextFormField(
                   controller: _dateController,
-                  decoration: InputDecoration(labelText: 'Fecha (dd/MM/yyyy)'),
+                  decoration:
+                      const InputDecoration(labelText: 'Fecha (dd/MM/yyyy)'),
                   readOnly: true,
                   onTap: () async {
                     DateTime? pickedDate = await showDatePicker(
@@ -211,20 +234,26 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                       ),
                     );
                   }).toList(),
-                  decoration: InputDecoration(labelText: 'Prioridad'),
+                  decoration: const InputDecoration(labelText: 'Prioridad'),
+                  validator: (value) {
+                    if (value == null) {
+                      return 'Por favor selecciona una prioridad';
+                    }
+                    return null;
+                  },
                 ),
               ],
             ),
           ),
           actions: <Widget>[
             TextButton(
-              child: Text('Cancelar'),
+              child: const Text('Cancelar'),
               onPressed: () {
                 Navigator.of(context).pop();
               },
             ),
             TextButton(
-              child: Text('Guardar'),
+              child: const Text('Guardar'),
               onPressed: () async {
                 if (_formKey.currentState!.validate()) {
                   _formKey.currentState!.save();
@@ -264,7 +293,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
         title: Text('Detalles del $transactionType'),
         actions: [
           IconButton(
-            icon: Icon(Icons.edit),
+            icon: const Icon(Icons.edit),
             onPressed: () {
               _showEditDialog(context);
             },
@@ -285,8 +314,12 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
               children: [
                 _buildDetailRow('ID:', widget.id.toString()),
                 const Divider(),
-                _buildDetailRow('Tipo:', transactionType, iconData,
-                    transactionType == 'Gasto' ? Colors.red : Colors.green),
+                _buildDetailRow(
+                  'Tipo:',
+                  transactionType,
+                  iconData,
+                  statusColor,
+                ),
                 const Divider(),
                 _buildDetailRow('Monto:', '\$${_amount.toStringAsFixed(2)}'),
                 const Divider(),
@@ -295,7 +328,11 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                 _buildDetailRow('Descripción:', _description),
                 const Divider(),
                 _buildDetailRow(
-                    'Prioridad:', _status, null, _getStatusColor(_status)),
+                  'Prioridad:',
+                  _status,
+                  null,
+                  _getStatusColor(_status),
+                ),
               ],
             ),
           ),
