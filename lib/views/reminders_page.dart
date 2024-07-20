@@ -171,7 +171,7 @@ class _RemindersPageState extends State<RemindersPage> {
             ),
           ),
           IconButton(
-            icon: Icon(Icons.delete, color: Colors.grey),
+            icon: const Icon(Icons.delete, color: Colors.grey),
             onPressed: () async {
               bool confirm = await _showConfirmationDialog(reminder['id']);
               if (confirm) {
@@ -207,17 +207,17 @@ class _RemindersPageState extends State<RemindersPage> {
           context: context,
           builder: (context) {
             return AlertDialog(
-              title: Text('Confirmar eliminación'),
-              content:
-                  Text('¿Estás seguro de que deseas eliminar este registro?'),
+              title: const Text('Confirmar eliminación'),
+              content: const Text(
+                  '¿Estás seguro de que deseas eliminar este registro?'),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
-                  child: Text('Cancelar'),
+                  child: const Text('Cancelar'),
                 ),
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(true),
-                  child: Text('Eliminar'),
+                  child: const Text('Eliminar'),
                 ),
               ],
             );
@@ -226,11 +226,11 @@ class _RemindersPageState extends State<RemindersPage> {
         false;
   }
 
-  Future<void> _showCreateDialog() async {
+  void _showCreateReminderModal() async {
+    final _formKey = GlobalKey<FormState>();
+
     final prefs = await SharedPreferences.getInstance();
     int? userId = prefs.getInt('user_id');
-
-    final _formKey = GlobalKey<FormState>();
 
     Map<String, dynamic> newReminder = {
       "type": "expense",
@@ -238,120 +238,143 @@ class _RemindersPageState extends State<RemindersPage> {
       "amount": 0.0,
       "date": DateTime.now().toIso8601String(),
       "description": "",
-      "status": "High" // Valor inicial predeterminado para el estatus
+      "status": "High"
     };
 
-    return showDialog<void>(
+    showModalBottomSheet(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Crear nuevo registro'),
-          content: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                DropdownButtonFormField<String>(
-                  value: newReminder['type'],
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      newReminder['type'] = newValue!;
-                    });
-                  },
-                  items: <String>['income', 'expense']
-                      .map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value == 'income' ? 'Ingreso' : 'Gasto'),
-                    );
-                  }).toList(),
-                  decoration: const InputDecoration(labelText: 'Tipo'),
-                  validator: (value) {
-                    if (value == null) {
-                      return 'Por favor selecciona un tipo';
-                    }
-                    return null;
-                  },
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.8,
+          maxChildSize: 0.8,
+          minChildSize: 0.3,
+          expand: false,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(16.0),
+                  topRight: Radius.circular(16.0),
                 ),
-                TextFormField(
-                  decoration: const InputDecoration(labelText: 'Monto'),
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
-                  ],
-                  onSaved: (String? value) {
-                    newReminder['amount'] =
-                        double.tryParse(value ?? '0.0') ?? 0.0;
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor ingresa un monto';
-                    }
-                    if (double.tryParse(value) == null) {
-                      return 'Ingresa un monto válido';
-                    }
-                    return null;
-                  },
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        DropdownButtonFormField<String>(
+                          value: newReminder['type'],
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              newReminder['type'] = newValue!;
+                            });
+                          },
+                          items: <String>['income', 'expense']
+                              .map<DropdownMenuItem<String>>((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child:
+                                  Text(value == 'income' ? 'Ingreso' : 'Gasto'),
+                            );
+                          }).toList(),
+                          decoration: const InputDecoration(labelText: 'Tipo'),
+                          validator: (value) {
+                            if (value == null) {
+                              return 'Por favor selecciona un tipo';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          decoration: const InputDecoration(labelText: 'Monto'),
+                          keyboardType:
+                              TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                                RegExp(r'^\d+\.?\d{0,2}'))
+                          ],
+                          onSaved: (String? value) {
+                            newReminder['amount'] =
+                                double.tryParse(value ?? '0.0') ?? 0.0;
+                          },
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Por favor ingresa un monto';
+                            }
+                            if (double.tryParse(value) == null) {
+                              return 'Ingresa un monto válido';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          decoration:
+                              const InputDecoration(labelText: 'Descripción'),
+                          onSaved: (String? value) {
+                            newReminder['description'] = value!;
+                          },
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Por favor ingresa una descripción';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: newReminder['status'],
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              newReminder['status'] = newValue!;
+                            });
+                          },
+                          items: <String>['High', 'Medium', 'Low']
+                              .map<DropdownMenuItem<String>>((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value == 'High'
+                                  ? 'Alta'
+                                  : value == 'Medium'
+                                      ? 'Media'
+                                      : 'Baja'),
+                            );
+                          }).toList(),
+                          decoration:
+                              const InputDecoration(labelText: 'Prioridad'),
+                          validator: (value) {
+                            if (value == null) {
+                              return 'Por favor selecciona una prioridad';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            if (_formKey.currentState!.validate()) {
+                              _formKey.currentState!.save();
+                              _createReminder(newReminder);
+                              Navigator.of(context).pop();
+                            }
+                          },
+                          child: const Text('Guardar'),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                TextFormField(
-                  decoration: const InputDecoration(labelText: 'Descripción'),
-                  onSaved: (String? value) {
-                    newReminder['description'] = value!;
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor ingresa una descripción';
-                    }
-                    return null;
-                  },
-                ),
-                DropdownButtonFormField<String>(
-                  value: newReminder['status'],
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      newReminder['status'] = newValue!;
-                    });
-                  },
-                  items: <String>['High', 'Medium', 'Low']
-                      .map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value == 'High'
-                          ? 'Alta'
-                          : value == 'Medium'
-                              ? 'Media'
-                              : 'Baja'),
-                    );
-                  }).toList(),
-                  decoration: const InputDecoration(labelText: 'Prioridad'),
-                  validator: (value) {
-                    if (value == null) {
-                      return 'Por favor selecciona una prioridad';
-                    }
-                    return null;
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: Text('Cancelar'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('Guardar'),
-              onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  _formKey.currentState!.save();
-                  _createReminder(newReminder);
-                  Navigator.of(context).pop();
-                }
-              },
-            ),
-          ],
+              ),
+            );
+          },
         );
       },
     );
@@ -394,7 +417,7 @@ class _RemindersPageState extends State<RemindersPage> {
                 IconButton(
                   icon: const Icon(Icons.add),
                   onPressed: () {
-                    _showCreateDialog();
+                    _showCreateReminderModal();
                   },
                 ),
               ],

@@ -65,12 +65,30 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showCreateTransactionModal(DateTime selectedDate) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Crear nuevo gasto o ingreso'),
-          content: CreateTransactionForm(selectedDate: selectedDate),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.8,
+          maxChildSize: 0.8,
+          minChildSize: 0.3,
+          expand: false,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(16.0),
+                  topRight: Radius.circular(16.0),
+                ),
+              ),
+              child: CreateTransactionForm(
+                selectedDate: selectedDate,
+              ),
+            );
+          },
         );
       },
     ).then((value) {
@@ -270,7 +288,7 @@ class _CreateTransactionFormState extends State<CreateTransactionForm> {
   String _type = 'expense';
   double _amount = 0.0;
   String _description = '';
-  String _status = 'Medium';
+  String _status = 'High';
 
   @override
   void initState() {
@@ -314,111 +332,117 @@ class _CreateTransactionFormState extends State<CreateTransactionForm> {
 
   @override
   Widget build(BuildContext context) {
-    return Form(
-      key: _formKey,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          TextFormField(
-            decoration: InputDecoration(
-              labelText: 'Fecha',
-              enabled: false, // Deshabilitar edición
-              border: const OutlineInputBorder(),
-              suffixIcon: Icon(Icons.calendar_today),
-            ),
-            initialValue: DateFormat('dd/MM/yyyy').format(widget.selectedDate),
-          ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            value: _type,
-            onChanged: (String? newValue) {
-              setState(() {
-                _type = newValue!;
-              });
-            },
-            items: <String>['expense', 'income']
-                .map<DropdownMenuItem<String>>((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value == 'expense' ? 'Gasto' : 'Ingreso'),
-              );
-            }).toList(),
-            decoration: const InputDecoration(labelText: 'Tipo'),
-            validator: (value) {
-              if (value == null) {
-                return 'Por favor selecciona un tipo';
-              }
-              return null;
-            },
-          ),
-          TextFormField(
-            decoration: const InputDecoration(labelText: 'Monto'),
-            keyboardType: TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'Fecha',
+                  enabled: false,
+                  border: const OutlineInputBorder(),
+                  suffixIcon: Icon(Icons.calendar_today),
+                ),
+                initialValue:
+                    DateFormat('dd/MM/yyyy').format(widget.selectedDate),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _type,
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _type = newValue!;
+                  });
+                },
+                items: <String>['expense', 'income']
+                    .map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value == 'expense' ? 'Gasto' : 'Ingreso'),
+                  );
+                }).toList(),
+                decoration: const InputDecoration(labelText: 'Tipo'),
+                validator: (value) {
+                  if (value == null) {
+                    return 'Por favor selecciona un tipo';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                decoration: const InputDecoration(labelText: 'Monto'),
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                ],
+                onSaved: (value) {
+                  _amount = double.tryParse(value!) ?? 0.0;
+                },
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Por favor ingresa un monto';
+                  }
+                  if (double.tryParse(value) == null) {
+                    return 'Ingresa un monto válido';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                decoration: const InputDecoration(labelText: 'Descripción'),
+                onSaved: (value) {
+                  _description = value ?? '';
+                },
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Por favor ingresa una descripción';
+                  }
+                  return null;
+                },
+              ),
+              DropdownButtonFormField<String>(
+                value: _status,
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _status = newValue!;
+                  });
+                },
+                items: <String>['Low', 'Medium', 'High']
+                    .map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value == 'Low'
+                        ? 'Baja'
+                        : value == 'Medium'
+                            ? 'Media'
+                            : 'Alta'),
+                  );
+                }).toList(),
+                decoration: const InputDecoration(labelText: 'Prioridad'),
+                validator: (value) {
+                  if (value == null) {
+                    return 'Por favor selecciona una prioridad';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  if (_formKey.currentState!.validate()) {
+                    _formKey.currentState!.save();
+                    _createTransaction();
+                  }
+                },
+                child: const Text('Crear'),
+              ),
             ],
-            onSaved: (value) {
-              _amount = double.tryParse(value!) ?? 0.0;
-            },
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Por favor ingresa un monto';
-              }
-              if (double.tryParse(value) == null) {
-                return 'Ingresa un monto válido';
-              }
-              return null;
-            },
           ),
-          TextFormField(
-            decoration: const InputDecoration(labelText: 'Descripción'),
-            onSaved: (value) {
-              _description = value ?? '';
-            },
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Por favor ingresa una descripción';
-              }
-              return null;
-            },
-          ),
-          DropdownButtonFormField<String>(
-            value: _status,
-            onChanged: (String? newValue) {
-              setState(() {
-                _status = newValue!;
-              });
-            },
-            items: <String>['Low', 'Medium', 'High']
-                .map<DropdownMenuItem<String>>((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value == 'Low'
-                    ? 'Baja'
-                    : value == 'Medium'
-                        ? 'Media'
-                        : 'Alta'),
-              );
-            }).toList(),
-            decoration: const InputDecoration(labelText: 'Prioridad'),
-            validator: (value) {
-              if (value == null) {
-                return 'Por favor selecciona una prioridad';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () {
-              if (_formKey.currentState!.validate()) {
-                _formKey.currentState!.save();
-                _createTransaction();
-              }
-            },
-            child: const Text('Crear'),
-          ),
-        ],
+        ),
       ),
     );
   }

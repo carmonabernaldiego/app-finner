@@ -35,6 +35,12 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
   late String _status;
 
   late TextEditingController _dateController;
+  late TextEditingController _amountController;
+  late TextEditingController _descriptionController;
+
+  bool _isEditing = false;
+
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -46,11 +52,15 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
     _status = widget.status;
 
     _dateController = TextEditingController(text: _formatDate(_date));
+    _amountController = TextEditingController(text: _amount.toString());
+    _descriptionController = TextEditingController(text: _description);
   }
 
   @override
   void dispose() {
     _dateController.dispose();
+    _amountController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -71,7 +81,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
     }
   }
 
-  Future<void> _updateReminder(Map<String, dynamic> updatedReminder) async {
+  Future<void> _updateReminder() async {
     final prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('token');
     int? userId = prefs.getInt('user_id');
@@ -85,27 +95,21 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
             'Authorization': 'Bearer $token',
           },
           body: jsonEncode({
-            'type': updatedReminder['type'],
+            'type': _type,
             'user_id': userId,
-            'amount': updatedReminder['amount'],
-            'date': updatedReminder['date'],
-            'description': updatedReminder['description'],
-            'status': updatedReminder['status'],
+            'amount': _amount,
+            'date': _date,
+            'description': _description,
+            'status': _status,
           }),
         );
 
         if (response.statusCode == 200) {
           setState(() {
-            _type = updatedReminder['type'];
-            _amount = updatedReminder['amount'];
-            _date = updatedReminder['date'];
-            _description = updatedReminder['description'];
-            _status = updatedReminder['status'];
-            _dateController.text = _formatDate(_date);
+            _isEditing = false;
           });
 
-          Navigator.of(context)
-              .pop(true); // Indicar que se ha actualizado la transacción
+          Navigator.of(context).pop(true);
         } else {
           print('Error al actualizar la transacción: ${response.body}');
         }
@@ -113,160 +117,6 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
         print('Error: $e');
       }
     }
-  }
-
-  Future<void> _showEditDialog(BuildContext context) async {
-    final _formKey = GlobalKey<FormState>();
-
-    Map<String, dynamic> updatedReminder = {
-      "type": _type,
-      "amount": _amount,
-      "date": _date,
-      "description": _description,
-      "status": _status
-    };
-
-    return showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Editar registro'),
-          content: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                DropdownButtonFormField<String>(
-                  value: updatedReminder['type'],
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      updatedReminder['type'] = newValue!;
-                    });
-                  },
-                  items: <String>['income', 'expense']
-                      .map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value == 'income' ? 'Ingreso' : 'Gasto'),
-                    );
-                  }).toList(),
-                  decoration: const InputDecoration(labelText: 'Tipo'),
-                  validator: (value) {
-                    if (value == null) {
-                      return 'Por favor selecciona un tipo';
-                    }
-                    return null;
-                  },
-                ),
-                TextFormField(
-                  initialValue: updatedReminder['amount'].toString(),
-                  decoration: const InputDecoration(labelText: 'Monto'),
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
-                  ],
-                  onSaved: (String? value) {
-                    updatedReminder['amount'] =
-                        double.tryParse(value ?? '0.0') ?? 0.0;
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor ingresa un monto';
-                    }
-                    if (double.tryParse(value) == null) {
-                      return 'Ingresa un monto válido';
-                    }
-                    return null;
-                  },
-                ),
-                TextFormField(
-                  initialValue: updatedReminder['description'],
-                  decoration: const InputDecoration(labelText: 'Descripción'),
-                  onSaved: (String? value) {
-                    updatedReminder['description'] = value!;
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor ingresa una descripción';
-                    }
-                    return null;
-                  },
-                ),
-                TextFormField(
-                  controller: _dateController,
-                  decoration:
-                      const InputDecoration(labelText: 'Fecha (dd/MM/yyyy)'),
-                  readOnly: true,
-                  onTap: () async {
-                    DateTime? pickedDate = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.parse(updatedReminder['date']),
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2101),
-                    );
-                    if (pickedDate != null) {
-                      setState(() {
-                        updatedReminder['date'] =
-                            DateFormat('yyyy-MM-dd').format(pickedDate);
-                        _dateController.text =
-                            DateFormat('dd/MM/yyyy').format(pickedDate);
-                      });
-                    }
-                  },
-                ),
-                DropdownButtonFormField<String>(
-                  value: updatedReminder['status'],
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      updatedReminder['status'] = newValue!;
-                    });
-                  },
-                  items: <String>['High', 'Medium', 'Low']
-                      .map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(
-                        value == 'High'
-                            ? 'Alta'
-                            : value == 'Medium'
-                                ? 'Media'
-                                : 'Baja',
-                      ),
-                    );
-                  }).toList(),
-                  decoration: const InputDecoration(labelText: 'Prioridad'),
-                  validator: (value) {
-                    if (value == null) {
-                      return 'Por favor selecciona una prioridad';
-                    }
-                    return null;
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancelar'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: const Text('Guardar'),
-              onPressed: () async {
-                if (_formKey.currentState!.validate()) {
-                  _formKey.currentState!.save();
-                  await _updateReminder(updatedReminder);
-                  Navigator.of(context).pop(
-                      true); // Cierra el diálogo y notifica la actualización
-                }
-              },
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
@@ -293,47 +143,189 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
         title: Text('Detalles del $transactionType'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit),
+            icon: Icon(_isEditing ? Icons.save : Icons.edit),
             onPressed: () {
-              _showEditDialog(context);
+              if (_isEditing) {
+                if (_formKey.currentState!.validate()) {
+                  _formKey.currentState!.save();
+                  _updateReminder();
+                }
+              } else {
+                setState(() {
+                  _isEditing = true;
+                });
+              }
             },
           ),
         ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Card(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15.0),
-          ),
-          elevation: 5,
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildDetailRow('ID:', widget.id.toString()),
-                const Divider(),
-                _buildDetailRow(
-                  'Tipo:',
-                  transactionType,
-                  iconData,
-                  statusColor,
+        child: Form(
+          key: _formKey,
+          child: Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15.0),
+            ),
+            elevation: 5,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ScrollConfiguration(
+                behavior: MyCustomScrollBehavior(),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildDetailRow('ID:', widget.id.toString()),
+                      const Divider(),
+                      _isEditing
+                          ? DropdownButtonFormField<String>(
+                              value: _type,
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  _type = newValue!;
+                                });
+                              },
+                              items: <String>[
+                                'income',
+                                'expense'
+                              ].map<DropdownMenuItem<String>>((String value) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(
+                                      value == 'income' ? 'Ingreso' : 'Gasto'),
+                                );
+                              }).toList(),
+                              decoration:
+                                  const InputDecoration(labelText: 'Tipo'),
+                              validator: (value) {
+                                if (value == null) {
+                                  return 'Por favor selecciona un tipo';
+                                }
+                                return null;
+                              },
+                            )
+                          : _buildDetailRow(
+                              'Tipo:',
+                              transactionType,
+                              iconData,
+                              statusColor,
+                            ),
+                      const Divider(),
+                      _isEditing
+                          ? TextFormField(
+                              controller: _amountController,
+                              decoration:
+                                  const InputDecoration(labelText: 'Monto'),
+                              keyboardType: TextInputType.numberWithOptions(
+                                  decimal: true),
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(
+                                    RegExp(r'^\d+\.?\d{0,2}'))
+                              ],
+                              onSaved: (String? value) {
+                                _amount =
+                                    double.tryParse(value ?? '0.0') ?? 0.0;
+                              },
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Por favor ingresa un monto';
+                                }
+                                if (double.tryParse(value) == null) {
+                                  return 'Ingresa un monto válido';
+                                }
+                                return null;
+                              },
+                            )
+                          : _buildDetailRow(
+                              'Monto:', '\$${_amount.toStringAsFixed(2)}'),
+                      const Divider(),
+                      _isEditing
+                          ? TextFormField(
+                              controller: _descriptionController,
+                              decoration: const InputDecoration(
+                                  labelText: 'Descripción'),
+                              onSaved: (String? value) {
+                                _description = value!;
+                              },
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Por favor ingresa una descripción';
+                                }
+                                return null;
+                              },
+                            )
+                          : _buildDetailRow('Descripción:', _description),
+                      const Divider(),
+                      _isEditing
+                          ? TextFormField(
+                              controller: _dateController,
+                              decoration: const InputDecoration(
+                                  labelText: 'Fecha (dd/MM/yyyy)'),
+                              readOnly: true,
+                              onTap: () async {
+                                DateTime? pickedDate = await showDatePicker(
+                                  context: context,
+                                  initialDate: DateTime.parse(_date),
+                                  firstDate: DateTime(2000),
+                                  lastDate: DateTime(2101),
+                                );
+                                if (pickedDate != null) {
+                                  setState(() {
+                                    _date = DateFormat('yyyy-MM-dd')
+                                        .format(pickedDate);
+                                    _dateController.text =
+                                        DateFormat('dd/MM/yyyy')
+                                            .format(pickedDate);
+                                  });
+                                }
+                              },
+                            )
+                          : _buildDetailRow('Fecha:', _formatDate(_date)),
+                      const Divider(),
+                      _isEditing
+                          ? DropdownButtonFormField<String>(
+                              value: _status,
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  _status = newValue!;
+                                });
+                              },
+                              items: <String>[
+                                'High',
+                                'Medium',
+                                'Low'
+                              ].map<DropdownMenuItem<String>>((String value) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(
+                                    value == 'High'
+                                        ? 'Alta'
+                                        : value == 'Medium'
+                                            ? 'Media'
+                                            : 'Baja',
+                                  ),
+                                );
+                              }).toList(),
+                              decoration:
+                                  const InputDecoration(labelText: 'Prioridad'),
+                              validator: (value) {
+                                if (value == null) {
+                                  return 'Por favor selecciona una prioridad';
+                                }
+                                return null;
+                              },
+                            )
+                          : _buildDetailRow(
+                              'Prioridad:',
+                              _status,
+                              null,
+                              _getStatusColor(_status),
+                            ),
+                    ],
+                  ),
                 ),
-                const Divider(),
-                _buildDetailRow('Monto:', '\$${_amount.toStringAsFixed(2)}'),
-                const Divider(),
-                _buildDetailRow('Fecha:', _formatDate(_date)),
-                const Divider(),
-                _buildDetailRow('Descripción:', _description),
-                const Divider(),
-                _buildDetailRow(
-                  'Prioridad:',
-                  _status,
-                  null,
-                  _getStatusColor(_status),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -392,5 +384,13 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
         ],
       ),
     );
+  }
+}
+
+class MyCustomScrollBehavior extends ScrollBehavior {
+  @override
+  Widget buildViewportChrome(
+      BuildContext context, Widget child, AxisDirection axisDirection) {
+    return child;
   }
 }

@@ -21,7 +21,7 @@ class _LoginPageState extends State<LoginPage> {
 
     return showDialog<void>(
       context: context,
-      barrierDismissible: false, // El usuario debe presionar el botón
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Completa tu registro'),
@@ -127,7 +127,7 @@ class _LoginPageState extends State<LoginPage> {
 
     return showDialog<void>(
       context: context,
-      barrierDismissible: false, // El usuario debe presionar el botón
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Iniciar sesión'),
@@ -228,7 +228,6 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   bool isValidEmail(String email) {
-    // Verifica que el email tenga un formato válido
     final RegExp emailRegex = RegExp(
       r'^[^@]+@[^@]+\.[^@]+',
     );
@@ -238,115 +237,123 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              'FINNER',
-              style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 32),
-            const Text(
-              'Crear nueva cuenta',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const SizedBox(height: 32),
-            TextField(
-              controller: emailController,
-              decoration: InputDecoration(
-                hintText: 'usuario@email.com',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                final String email = emailController.text;
-                if (email.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text(
-                            'Por favor, introduce un correo electrónico.')),
-                  );
-                  return;
-                }
-                if (!isValidEmail(email)) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text(
-                            'Por favor, introduce un correo electrónico válido.')),
-                  );
-                  return;
-                }
-                showRegisterDialog(email);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text('Registrarse',
-                  style: TextStyle(color: Colors.white)),
-            ),
-            const SizedBox(height: 16),
-            const Row(
+      resizeToAvoidBottomInset: true, // Asegúrate de que esté habilitado
+      body: Center(
+        // Usa Center para centrar el contenido verticalmente
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize
+                  .min, // Cambia esto para ajustar el tamaño del Column
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Expanded(child: Divider(color: Colors.grey)),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8.0),
-                  child: Text('o', style: TextStyle(color: Colors.grey)),
+                const Text(
+                  'FINNER',
+                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
                 ),
-                Expanded(child: Divider(color: Colors.grey)),
+                const SizedBox(height: 32),
+                const Text(
+                  'Crear nueva cuenta',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                const SizedBox(height: 32),
+                TextField(
+                  controller: emailController,
+                  decoration: InputDecoration(
+                    hintText: 'usuario@email.com',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    final String email = emailController.text;
+                    if (email.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text(
+                                'Por favor, introduce un correo electrónico.')),
+                      );
+                      return;
+                    }
+                    if (!isValidEmail(email)) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text(
+                                'Por favor, introduce un correo electrónico válido.')),
+                      );
+                      return;
+                    }
+                    showRegisterDialog(email);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text('Registrarse',
+                      style: TextStyle(color: Colors.white)),
+                ),
+                const SizedBox(height: 16),
+                const Row(
+                  children: [
+                    Expanded(child: Divider(color: Colors.grey)),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8.0),
+                      child: Text('o', style: TextStyle(color: Colors.grey)),
+                    ),
+                    Expanded(child: Divider(color: Colors.grey)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    final String email = emailController.text;
+                    if (email.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text(
+                                'Por favor, introduce un correo electrónico.')),
+                      );
+                      return;
+                    }
+                    if (!isValidEmail(email)) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text(
+                                'Por favor, introduce un correo electrónico válido.')),
+                      );
+                      return;
+                    }
+                    showLoginDialog(email);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.grey),
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  icon: const Icon(Icons.login, color: Colors.black),
+                  label: const Text('Inicia sesión',
+                      style: TextStyle(color: Colors.black)),
+                ),
+                const SizedBox(height: 32),
+                const Text(
+                  'Al continuar, aceptas nuestros Términos de Servicio y Política de Privacidad.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
               ],
             ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () {
-                final String email = emailController.text;
-                if (email.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text(
-                            'Por favor, introduce un correo electrónico.')),
-                  );
-                  return;
-                }
-                if (!isValidEmail(email)) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text(
-                            'Por favor, introduce un correo electrónico válido.')),
-                  );
-                  return;
-                }
-                showLoginDialog(email);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                side: const BorderSide(color: Colors.grey),
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              icon: const Icon(Icons.login, color: Colors.black),
-              label: const Text('Inicia sesión',
-                  style: TextStyle(color: Colors.black)),
-            ),
-            const SizedBox(height: 32),
-            const Text(
-              'Al continuar, aceptas nuestros Términos de Servicio y Política de Privacidad.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ],
+          ),
         ),
       ),
     );

@@ -3,7 +3,6 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home_page.dart';
-import 'login_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -17,6 +16,8 @@ class _ProfilePageState extends State<ProfilePage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _lastnameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
+
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -61,6 +62,10 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _updateUser() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
     final prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('token');
     int? userId = prefs.getInt('user_id');
@@ -69,20 +74,6 @@ class _ProfilePageState extends State<ProfilePage> {
       String name = _nameController.text;
       String lastname = _lastnameController.text;
       String email = _emailController.text;
-
-      if (name.isEmpty || lastname.isEmpty || email.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Todos los campos son obligatorios.')),
-        );
-        return;
-      }
-
-      if (!_validateEmail(email)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Correo electrónico no es válido.')),
-        );
-        return;
-      }
 
       try {
         final response = await http.put(
@@ -123,50 +114,91 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  void _showEditProfileDialog() {
-    showDialog(
+  void _showEditProfileModal() {
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Editar perfil'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre',
-                  border: OutlineInputBorder(),
+        return DraggableScrollableSheet(
+          initialChildSize: 0.8,
+          maxChildSize: 0.8,
+          minChildSize: 0.3,
+          expand: false,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(16.0),
+                  topRight: Radius.circular(16.0),
                 ),
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _lastnameController,
-                decoration: const InputDecoration(
-                  labelText: 'Apellidos',
-                  border: OutlineInputBorder(),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        TextFormField(
+                          controller: _nameController,
+                          decoration: InputDecoration(
+                            labelText: 'Nombre',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Por favor ingresa tu nombre';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _lastnameController,
+                          decoration: InputDecoration(
+                            labelText: 'Apellidos',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Por favor ingresa tus apellidos';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _emailController,
+                          decoration: InputDecoration(
+                            labelText: 'Correo',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Por favor ingresa tu correo electrónico';
+                            }
+                            if (!_validateEmail(value)) {
+                              return 'Correo electrónico no es válido';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _updateUser,
+                          child: const Text('Guardar'),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Correo',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: _updateUser,
-              child: const Text('Guardar'),
-            ),
-          ],
+            );
+          },
         );
       },
     );
@@ -195,35 +227,38 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         title: const Text('Perfil'),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              const SizedBox(height: 16),
-              const CircleAvatar(
-                radius: 50,
-                backgroundImage: AssetImage('assets/images/user.png'),
-                backgroundColor: Colors.white,
-              ),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: _showEditProfileDialog,
-                child: const Text(
-                  'Editar perfil',
-                  style: TextStyle(color: Colors.blue),
+      body: Center(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(height: 16),
+                const CircleAvatar(
+                  radius: 50,
+                  backgroundImage: AssetImage('assets/images/user.png'),
+                  backgroundColor: Colors.white,
                 ),
-              ),
-              const SizedBox(height: 16),
-              _buildProfileItem('Nombre', user['name'] ?? ''),
-              _buildProfileItem('Apellidos', user['lastname'] ?? ''),
-              _buildProfileItem('Correo', user['email'] ?? ''),
-              const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: _logout,
-                child: const Text('Cerrar sesión'),
-              ),
-            ],
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: _showEditProfileModal,
+                  child: const Text(
+                    'Editar perfil',
+                    style: TextStyle(color: Colors.blue),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildProfileItem('Nombre', user['name'] ?? ''),
+                _buildProfileItem('Apellidos', user['lastname'] ?? ''),
+                _buildProfileItem('Correo', user['email'] ?? ''),
+                const SizedBox(height: 32),
+                ElevatedButton(
+                  onPressed: _logout,
+                  child: const Text('Cerrar sesión'),
+                ),
+              ],
+            ),
           ),
         ),
       ),
