@@ -321,6 +321,7 @@ class _RemindersPageState extends State<RemindersPage> {
                   } else if (newReminder['status'] == 'Baja') {
                     newReminder['status'] = 'Low';
                   }
+
                   _createReminder(newReminder);
                   Navigator.of(context).pop();
                 }
@@ -334,71 +335,65 @@ class _RemindersPageState extends State<RemindersPage> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        Navigator.pop(context, true);
-        return false;
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Gastos e Ingresos'),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              Navigator.pop(context, true);
-            },
-          ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Gastos e Ingresos'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pushNamed(context, '/home');
+          },
         ),
-        body: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: searchController,
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.search),
-                        hintText: 'Buscar',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        filled: true,
-                        fillColor: Colors.grey[200],
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: searchController,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.search),
+                      hintText: 'Buscar',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
                       ),
+                      filled: true,
+                      fillColor: Colors.grey[200],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    icon: const Icon(Icons.add),
-                    onPressed: () {
-                      _showCreateDialog();
-                    },
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: () {
+                    _showCreateDialog();
+                  },
+                ),
+              ],
             ),
-            Expanded(
-              child: isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : reminders.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'Sin resultados',
-                            style: TextStyle(fontSize: 18, color: Colors.grey),
-                          ),
-                        )
-                      : ListView.builder(
-                          itemCount: reminders.length,
-                          itemBuilder: (context, index) {
-                            return _buildReminderItem(reminders[index]);
-                          },
+          ),
+          Expanded(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : reminders.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'Sin resultados',
+                          style: TextStyle(fontSize: 18, color: Colors.grey),
                         ),
-            ),
-          ],
-        ),
+                      )
+                    : ListView.builder(
+                        itemCount: reminders.length,
+                        itemBuilder: (context, index) {
+                          return _buildReminderItem(reminders[index]);
+                        },
+                      ),
+          ),
+        ],
       ),
     );
   }
